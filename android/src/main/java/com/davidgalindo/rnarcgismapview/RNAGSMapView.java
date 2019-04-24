@@ -1,5 +1,9 @@
 package com.davidgalindo.rnarcgismapview;
 
+import java.util.Iterator;
+import java.util.Map;
+import com.google.gson.*;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
@@ -8,19 +12,30 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.view.SurfaceHolder.Callback;
 
+import com.esri.arcgisruntime.data.FeatureQueryResult;
+import com.esri.arcgisruntime.layers.FeatureLayer;
+import com.esri.arcgisruntime.geometry.Envelope;
+import com.esri.arcgisruntime.data.ServiceFeatureTable;
+import com.esri.arcgisruntime.mapping.view.IdentifyLayerResult;
 import com.esri.arcgisruntime.ArcGISRuntimeException;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.data.QueryParameters;
 import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.geometry.PointCollection;
 import com.esri.arcgisruntime.geometry.Polygon;
 import com.esri.arcgisruntime.geometry.Polyline;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
+import com.esri.arcgisruntime.arcgisservices.LabelDefinition;
 import com.esri.arcgisruntime.mapping.Viewpoint;
+import com.esri.arcgisruntime.mapping.GeoElement;
 import com.esri.arcgisruntime.mapping.view.Callout;
 import com.esri.arcgisruntime.mapping.view.DefaultMapViewOnTouchListener;
 import com.esri.arcgisruntime.mapping.view.Graphic;
@@ -51,10 +66,14 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     public MapView mapView;
     String basemapUrl = "";
     String routeUrl = "";
+    String layerInformation = "";
+    public FeatureLayer featLayer;
+    public ServiceFeatureTable serviceTable;
     Boolean recenterIfGraphicTapped = false;
     HashMap<String, RNAGSGraphicsOverlay> rnGraphicsOverlays = new HashMap<>();
     GraphicsOverlay routeGraphicsOverlay;
     RNAGSRouter router;
+    Context context;
     private Callout callout;
     Double minZoom = 0.0;
     Double maxZoom = 0.0;
@@ -63,11 +82,13 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     // MARK: Initializers
     public RNAGSMapView(Context context) {
         super(context);
+        this.context = context;
         rootView = inflate(context.getApplicationContext(),R.layout.rnags_mapview,this);
         mapView = rootView.findViewById(R.id.agsMapView);
         if (context instanceof ReactContext) {
             ((ReactContext) context).addLifecycleEventListener(this);
         }
+
         setUpMap();
         setUpCallout();
     }
@@ -128,6 +149,45 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
             }
         });
         basemap.loadAsync();
+    }
+
+    /**
+     * my method to add layers to map
+     * Zach Shaw
+     */
+    public void addMapLayer(String url) {
+        ServiceFeatureTable serviceFeatureTable = new ServiceFeatureTable(url);
+        FeatureLayer featureLayer = new FeatureLayer(serviceFeatureTable);
+        this.featLayer = featureLayer;
+        this.serviceTable = serviceFeatureTable;
+        ArcGISMap map = mapView.getMap();
+        map.getOperationalLayers().add(featureLayer);
+    }
+
+    /**
+     * method to remove layer from map
+     */
+    public void removeMapLayer(int index) {
+        ArcGISMap map = mapView.getMap();
+        map.getOperationalLayers().remove(index); 
+    }
+
+    /**
+     * My method for layer information
+     */
+
+    public void setLayerInformation(FeatureLayer featLayer) {
+        this.layerInformation = featLayer.getFeatureTable().getSpatialReference().toString();
+    }
+
+    public String getLayerInformation() {
+        return this.layerInformation;
+    }
+
+    public List<LabelDefinition> getLayerDefinitions(FeatureLayer featureLayer) {
+        List<LabelDefinition> labelList = new ArrayList<LabelDefinition>();
+        labelList = featureLayer.getLabelDefinitions();
+        return labelList;
     }
 
     public void setRouteUrl(String url) {
@@ -404,12 +464,16 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         }
         @Override
         public boolean onDown(MotionEvent e) {
-            WritableMap map = createPointMap(e);
+            WritableMap map = createPointMap(e,null);
             emitEvent("onMapMoved",map);
             return true;
         }
 
-        private WritableMap createPointMap(MotionEvent e){
+        private WritableMap createPointMap(MotionEvent e, Map<String,Object> geoAtrribs){
+
+            //we use gson to convert objects to json to then be added to the info map
+            Gson gson = new Gson();
+
             android.graphics.Point screenPoint = new android.graphics.Point(((int) e.getX()), ((int) e.getY()));
             WritableMap screenPointMap = Arguments.createMap();
             screenPointMap.putInt("x",screenPoint.x);
@@ -421,19 +485,32 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
                 mapPointMap.putDouble("latitude", latLongPoint.getY());
                 mapPointMap.putDouble("longitude", latLongPoint.getX());
             }
+
+            /*adding info to map*/
+            WritableMap infoMap = Arguments.createMap();
+            if (geoAtrribs != null) {
+                for (Map.Entry<String, Object> entry : geoAtrribs.entrySet()){
+                    infoMap.putString(entry.getKey(), gson.toJson(entry.getValue()));
+                }
+            }
+
             WritableMap map = Arguments.createMap();
             map.putMap("screenPoint", screenPointMap);
             map.putMap("mapPoint",mapPointMap);
+            map.putMap("infoMap", infoMap);
+            
+
             return map;
         }
 
+        
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            WritableMap map = createPointMap(e);
+            
             android.graphics.Point screenPoint = new android.graphics.Point(((int) e.getX()), ((int) e.getY()));
+            ArcGISMap map = mapView.getMap();
 
-
-            ListenableFuture<List<IdentifyGraphicsOverlayResult>> future = mMapView.identifyGraphicsOverlaysAsync(screenPoint,15, false);
+            /*ListenableFuture<List<IdentifyGraphicsOverlayResult>> future = mMapView.identifyGraphicsOverlaysAsync(screenPoint,15, false);
             future.addDoneListener(() -> {
                 try {
                     if (!future.get().isEmpty()) {
@@ -454,12 +531,56 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
                 } finally {
                     emitEvent("onSingleTap",map);
                 }
-            });
+            });*/
+            //Toast.makeText(context, exception.getMessage(), Toast.LENGTH_LONG).show();
 
+            //ensure that a layer is present (currently only checks for a single layer)
+            //https://developers.arcgis.com/android/latest/guide/identify-features.htm
+            //identifies the layer of a click and then calls handle identifyresults in the case that a layer is clicked
+            if (featLayer != null) {
+                
+                final ListenableFuture<List<IdentifyLayerResult>> identifyLayerResultsFuture = mapView
+                .identifyLayersAsync(screenPoint, 12, false, 10);
 
+                identifyLayerResultsFuture.addDoneListener(new Runnable() {
+                    WritableMap returnMap = Arguments.createMap();
+                    @Override public void run() {
+                        try{
+                            List<IdentifyLayerResult> identifyLayerResults = identifyLayerResultsFuture.get();
+                            Map<String,Object> returnInfo = handleIdentifyResults(identifyLayerResults);
+                            returnMap = createPointMap(e, returnInfo);
+                        } catch(Exception exception) {
+                            Toast.makeText(context, exception.getMessage() + "HERE", Toast.LENGTH_LONG).show();
+                        } finally {
+                            emitEvent("onSingleTap", returnMap);
+                        }
+                    }
+                });
+            }
             return true;
         }
     }
+
+    /**
+     * my function for getting point attributes
+     */
+    private Map<String,Object> handleIdentifyResults(List<IdentifyLayerResult> identifyLayerResults) {
+        StringBuilder message = new StringBuilder();
+        int totalCount = 0;
+        Map<String,Object> attribs = new HashMap<>();
+
+        for (IdentifyLayerResult identifyLayerResult : identifyLayerResults) {
+          List<GeoElement> geoElements = identifyLayerResult.getElements();
+          for (GeoElement geoElem : geoElements) {
+            attribs = geoElem.getAttributes();
+          }
+    
+        }
+        //Toast.makeText(context, attribs.toString(), Toast.LENGTH_SHORT).show();
+
+        return attribs;
+
+      }
 
     // MARK: Lifecycle Event Listeners
     @Override

@@ -22,6 +22,8 @@ public class RNArcGISMapViewManager extends SimpleViewManager<RNAGSMapView> {
     private final int UPDATE_POINTS_IN_GRAPHICS_OVERLAY = 7;
     private final int ROUTE_GRAPHICS_OVERLAY = 8;
     private final int SET_ROUTE_IS_VISIBLE = 9;
+    private final int ADD_MAP_LAYER = 10;
+    private final int REMOVE_MAP_LAYER = 11;
     private final int DISPOSE = 999;
 
     // MARK Initializing methods
@@ -75,7 +77,6 @@ public class RNArcGISMapViewManager extends SimpleViewManager<RNAGSMapView> {
         view.setRotationEnabled(value);
     }
 
-
     // MARK: RN Methods
     @Override
     public Map<String, Integer> getCommandsMap() {
@@ -91,6 +92,8 @@ public class RNArcGISMapViewManager extends SimpleViewManager<RNAGSMapView> {
         // Ran out of space in the constructor lol
         map.put("routeGraphicsOverlayViaManager",ROUTE_GRAPHICS_OVERLAY);
         map.put("setRouteIsVisible", SET_ROUTE_IS_VISIBLE);
+        map.put("addMapLayer", ADD_MAP_LAYER);
+        map.put("removeMapLayer", REMOVE_MAP_LAYER);
         map.put("dispose", DISPOSE);
         return map;
     }
@@ -109,6 +112,8 @@ public class RNArcGISMapViewManager extends SimpleViewManager<RNAGSMapView> {
             case UPDATE_POINTS_IN_GRAPHICS_OVERLAY: mapView.updatePointsInGraphicsOverlay(args.getMap(0));return;
             case ROUTE_GRAPHICS_OVERLAY: mapView.routeGraphicsOverlay(args.getMap(0));return;
             case SET_ROUTE_IS_VISIBLE: mapView.setRouteIsVisible(args.getBoolean(0));return;
+            case ADD_MAP_LAYER: mapView.addMapLayer(args.getString(0));return;
+            case REMOVE_MAP_LAYER: mapView.removeMapLayer(args.getInt(0));return;
             case DISPOSE: mapView.onHostDestroy();
         }
     }

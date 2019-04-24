@@ -1,27 +1,57 @@
 {
-  "name": "react-native-arcgis-mapview",
-  "version": "1.0.11",
-  "description": "A Basic ArcGIS port for React Native.",
-  "main": "AGSMapView.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "react-native"
+  "_args": [
+    [
+      "react-native-arcgis-mapview@1.0.11",
+      "C:\\Users\\zshaw\\Documents\\freshGIS"
+    ]
   ],
-  "author": "David Galindo",
-  "license": "MIT",
-  "peerDependencies": {
-    "react-native": ">= 0.51"
+  "_from": "react-native-arcgis-mapview@1.0.11",
+  "_id": "react-native-arcgis-mapview@1.0.11",
+  "_inBundle": false,
+  "_integrity": "sha512-R22Y/F4tx4Tj21frcNOv0oxDxo25M1XAT/32cj93HkpvidbiaI9ryXZxWeILQOi1DZCjDpBIYwLUARczzY2qqQ==",
+  "_location": "/react-native-arcgis-mapview",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "react-native-arcgis-mapview@1.0.11",
+    "name": "react-native-arcgis-mapview",
+    "escapedName": "react-native-arcgis-mapview",
+    "rawSpec": "1.0.11",
+    "saveSpec": null,
+    "fetchSpec": "1.0.11"
   },
-  "dependencies": {},
-  "devDependencies": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/davidgalindo/react-native-arcgis-mapview.git"
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/react-native-arcgis-mapview/-/react-native-arcgis-mapview-1.0.11.tgz",
+  "_spec": "1.0.11",
+  "_where": "C:\\Users\\zshaw\\Documents\\freshGIS",
+  "author": {
+    "name": "David Galindo"
   },
   "bugs": {
     "url": "https://github.com/davidgalindo/react-native-arcgis-mapview/issues"
   },
-  "homepage": "https://github.com/davidgalindo/react-native-arcgis-mapview#readme"
+  "dependencies": {},
+  "description": "A Basic ArcGIS port for React Native.",
+  "devDependencies": {},
+  "homepage": "https://github.com/davidgalindo/react-native-arcgis-mapview#readme",
+  "keywords": [
+    "react-native"
+  ],
+  "license": "MIT",
+  "main": "AGSMapView.js",
+  "name": "react-native-arcgis-mapview",
+  "peerDependencies": {
+    "react-native": ">= 0.51"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidgalindo/react-native-arcgis-mapview.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.11"
 }
