@@ -120,6 +120,7 @@ class ArcGISMapView extends React.Component {
     );
   }
 
+
   getRouteIsVisible = (callback) => {
     if (Platform.OS === 'ios') {
       UIManager.dispatchViewManagerCommand(

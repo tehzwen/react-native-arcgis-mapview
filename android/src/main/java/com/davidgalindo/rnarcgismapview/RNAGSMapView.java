@@ -15,6 +15,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.view.SurfaceHolder.Callback;
 
+import com.esri.arcgisruntime.layers.*;
+import com.esri.arcgisruntime.util.ListenableList;
+import com.esri.arcgisruntime.tasks.geocode.GeocodeParameters;
+import com.esri.arcgisruntime.data.FeatureTable;
+import com.esri.arcgisruntime.data.Field;
+import com.esri.arcgisruntime.mapping.LayerList;
 import com.esri.arcgisruntime.data.FeatureQueryResult;
 import com.esri.arcgisruntime.layers.FeatureLayer;
 import com.esri.arcgisruntime.geometry.Envelope;
@@ -71,6 +77,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     public ServiceFeatureTable serviceTable;
     Boolean recenterIfGraphicTapped = false;
     HashMap<String, RNAGSGraphicsOverlay> rnGraphicsOverlays = new HashMap<>();
+    List<FeatureLayer> featureLayerList = new ArrayList<>();
     GraphicsOverlay routeGraphicsOverlay;
     RNAGSRouter router;
     Context context;
@@ -83,7 +90,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     public RNAGSMapView(Context context) {
         super(context);
         this.context = context;
-        rootView = inflate(context.getApplicationContext(),R.layout.rnags_mapview,this);
+        rootView = inflate(context.getApplicationContext(), R.layout.rnags_mapview, this);
         mapView = rootView.findViewById(R.id.agsMapView);
         if (context instanceof ReactContext) {
             ((ReactContext) context).addLifecycleEventListener(this);
@@ -97,7 +104,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         // We want to create the callout right after the View has finished its layout
         mapView.post(() -> {
             callout = mapView.getCallout();
-            callout.setContent(inflate(getContext().getApplicationContext(),R.layout.rnags_callout_content, null));
+            callout.setContent(inflate(getContext().getApplicationContext(), R.layout.rnags_callout_content, null));
             Callout.ShowOptions showOptions = new Callout.ShowOptions();
             showOptions.setAnimateCallout(true);
             showOptions.setAnimateRecenter(true);
@@ -115,7 +122,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     @SuppressLint("ClickableViewAccessibility")
     public void setUpMap() {
         mapView.setMap(new ArcGISMap(Basemap.Type.STREETS_VECTOR, 34.057, -117.196, 17));
-        mapView.setOnTouchListener(new OnSingleTouchListener(getContext(),mapView));
+        mapView.setOnTouchListener(new OnSingleTouchListener(getContext(), mapView));
         routeGraphicsOverlay = new GraphicsOverlay();
         mapView.getGraphicsOverlays().add(routeGraphicsOverlay);
         mapView.getMap().addDoneLoadingListener(() -> {
@@ -123,17 +130,17 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
             Boolean success = e != null;
             String errorMessage = !success ? "" : e.getMessage();
             WritableMap map = Arguments.createMap();
-            map.putBoolean("success",success);
-            map.putString("errorMessage",errorMessage);
+            map.putBoolean("success", success);
+            map.putString("errorMessage", errorMessage);
 
-            emitEvent("onMapDidLoad",map);
+            emitEvent("onMapDidLoad", map);
         });
     }
 
     // MARK: Prop set methods
     public void setBasemapUrl(String url) {
         basemapUrl = url;
-        if(basemapUrl == null || basemapUrl.isEmpty()) {
+        if (basemapUrl == null || basemapUrl.isEmpty()) {
             return;
         }
         // Set basemap of map
@@ -152,8 +159,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     }
 
     /**
-     * my method to add layers to map
-     * Zach Shaw
+     * my method to add layers to map Zach Shaw
      */
     public void addMapLayer(String url) {
         ServiceFeatureTable serviceFeatureTable = new ServiceFeatureTable(url);
@@ -169,7 +175,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
      */
     public void removeMapLayer(int index) {
         ArcGISMap map = mapView.getMap();
-        map.getOperationalLayers().remove(index); 
+        map.getOperationalLayers().remove(index);
     }
 
     /**
@@ -216,10 +222,10 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         }
         // If no points exist, add a sample point
         if (points.size() == 0) {
-            points.add(new Point(36.244797,-94.148060, SpatialReferences.getWgs84()));
+            points.add(new Point(36.244797, -94.148060, SpatialReferences.getWgs84()));
         }
         if (points.size() == 1) {
-            mapView.getMap().setInitialViewpoint(new Viewpoint(points.get(0),10000));
+            mapView.getMap().setInitialViewpoint(new Viewpoint(points.get(0), 10000));
         } else {
             Polygon polygon = new Polygon(new PointCollection(points));
             Viewpoint viewpoint = viewpointFromPolygon(polygon);
@@ -231,7 +237,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         minZoom = value;
         mapView.getMap().setMinScale(minZoom);
     }
-    
+
     public void setMaxZoom(Double value) {
         maxZoom = value;
         mapView.getMap().setMaxScale(maxZoom);
@@ -256,13 +262,13 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         String text = "";
         Boolean shouldRecenter = false;
 
-        if(args.hasKey("title")) {
+        if (args.hasKey("title")) {
             title = args.getString("title");
         }
-        if(args.hasKey("text")) {
+        if (args.hasKey("text")) {
             text = args.getString("text");
         }
-        if(args.hasKey("shouldRecenter")) {
+        if (args.hasKey("shouldRecenter")) {
             shouldRecenter = args.getBoolean("shouldRecenter");
         }
 
@@ -275,7 +281,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         ((TextView) calloutContent.findViewById(R.id.text)).setText(text);
         callout.setLocation(agsPoint);
         callout.show();
-        Log.i("AGS",callout.isShowing()+" " + calloutContent.getWidth() + " " + calloutContent.getHeight());
+        Log.i("AGS", callout.isShowing() + " " + calloutContent.getWidth() + " " + calloutContent.getHeight());
         if (shouldRecenter) {
             mapView.setViewpointCenterAsync(agsPoint);
         }
@@ -283,21 +289,21 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
 
     public void centerMap(ReadableArray args) {
         final ArrayList<Point> points = new ArrayList<>();
-        for (int i = 0; i <  args.size(); i++) {
+        for (int i = 0; i < args.size(); i++) {
             ReadableMap item = args.getMap(i);
             if (item == null) {
                 continue;
             }
             Double latitude = item.getDouble("latitude");
             Double longitude = item.getDouble("longitude");
-            if(latitude == 0 || longitude == 0) {
+            if (latitude == 0 || longitude == 0) {
                 continue;
             }
             points.add(new Point(longitude, latitude, SpatialReferences.getWgs84()));
         }
         // Perform the recentering
         if (points.size() == 1) {
-            mapView.setViewpointCenterAsync(points.get(0),60000);
+            mapView.setViewpointCenterAsync(points.get(0), 60000);
         } else if (points.size() > 1) {
             PointCollection pointCollection = new PointCollection(points);
             Polygon polygon = new Polygon(pointCollection);
@@ -331,12 +337,12 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
             return;
         }
         Boolean shouldAnimateUpdate = false;
-        if(args.hasKey("animated")) {
+        if (args.hasKey("animated")) {
             shouldAnimateUpdate = args.getBoolean("animated");
         }
         String overlayReferenceId = args.getString("overlayReferenceId");
         RNAGSGraphicsOverlay overlay = rnGraphicsOverlays.get(overlayReferenceId);
-        if (overlay != null && args.hasKey("updates")){
+        if (overlay != null && args.hasKey("updates")) {
             overlay.setShouldAnimateUpdate(shouldAnimateUpdate);
             overlay.updateGraphics(args.getArray("updates"));
         }
@@ -378,7 +384,8 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     // Routing
     public void routeGraphicsOverlay(ReadableMap args) {
         if (router == null) {
-            Log.w("Warning (AGS)", "Router has not been initialized. Perhaps no route URL was provided? Route URL:" + routeUrl);
+            Log.w("Warning (AGS)",
+                    "Router has not been initialized. Perhaps no route URL was provided? Route URL:" + routeUrl);
             return;
         }
         if (!args.hasKey("overlayReferenceId")) {
@@ -388,9 +395,9 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         String overlayReferenceId = args.getString("overlayReferenceId");
         RNAGSGraphicsOverlay overlay = rnGraphicsOverlays.get(overlayReferenceId);
         ArrayList<String> removeGraphics = new ArrayList<>();
-        if(args.hasKey("excludeGraphics")) {
+        if (args.hasKey("excludeGraphics")) {
             ReadableArray rawArray = args.getArray("excludeGraphics");
-            for (Object item: rawArray.toArrayList()) {
+            for (Object item : rawArray.toArrayList()) {
                 removeGraphics.add(((String) item));
             }
         }
@@ -401,9 +408,10 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
             color = "#FF0000";
         }
         assert overlay != null;
-        ListenableFuture<RouteResult> future = router.createRoute(overlay.getAGSGraphicsOverlay(),removeGraphics);
+        ListenableFuture<RouteResult> future = router.createRoute(overlay.getAGSGraphicsOverlay(), removeGraphics);
         if (future == null) {
-            Log.w("Warning (AGS)", "There was an issue creating the route. Please try again later, or check your routing server.");
+            Log.w("Warning (AGS)",
+                    "There was an issue creating the route. Please try again later, or check your routing server.");
             return;
         }
         setIsRouting(true);
@@ -414,7 +422,7 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
                     Route route = result.getRoutes().get(0);
                     drawRoute(route, color);
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 setIsRouting(false);
@@ -423,7 +431,8 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     }
 
     private void setIsRouting(Boolean value) {
-        ((ReactContext) getContext()).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("isRoutingChanged",value);
+        ((ReactContext) getContext()).getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("isRoutingChanged", value);
     }
 
     private void drawRoute(Route route, String color) {
@@ -432,26 +441,21 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
             return;
         }
         routeGraphicsOverlay.getGraphics().clear();
-        SimpleLineSymbol symbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.parseColor(color),5);
+        SimpleLineSymbol symbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.parseColor(color), 5);
         Polyline polyline = route.getRouteGeometry();
-        Graphic routeGraphic = new Graphic(route.getRouteGeometry(),symbol);
+        Graphic routeGraphic = new Graphic(route.getRouteGeometry(), symbol);
         routeGraphicsOverlay.getGraphics().add(routeGraphic);
     }
 
     // MARK: Event emitting
     public void emitEvent(String eventName, WritableMap args) {
-        ((ReactContext) getContext()).getJSModule(RCTEventEmitter.class).receiveEvent(
-                getId(),
-                eventName,
-                args
-        );
+        ((ReactContext) getContext()).getJSModule(RCTEventEmitter.class).receiveEvent(getId(), eventName, args);
     }
-
 
     // MARK: OnTouchListener
     public class OnSingleTouchListener extends DefaultMapViewOnTouchListener {
-        OnSingleTouchListener(Context context, MapView mMapView){
-            super(context,mMapView);
+        OnSingleTouchListener(Context context, MapView mMapView) {
+            super(context, mMapView);
         }
 
         @Override
@@ -462,22 +466,23 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
                 return true;
             }
         }
+
         @Override
         public boolean onDown(MotionEvent e) {
-            WritableMap map = createPointMap(e,null);
-            emitEvent("onMapMoved",map);
+            WritableMap map = createPointMap(e, null);
+            emitEvent("onMapMoved", map);
             return true;
         }
 
-        private WritableMap createPointMap(MotionEvent e, Map<String,Object> geoAtrribs){
+        private WritableMap createPointMap(MotionEvent e, Map<String, Object> geoAtrribs) {
 
-            //we use gson to convert objects to json to then be added to the info map
+            // we use gson to convert objects to json to then be added to the info map
             Gson gson = new Gson();
 
             android.graphics.Point screenPoint = new android.graphics.Point(((int) e.getX()), ((int) e.getY()));
             WritableMap screenPointMap = Arguments.createMap();
-            screenPointMap.putInt("x",screenPoint.x);
-            screenPointMap.putInt("y",screenPoint.y);
+            screenPointMap.putInt("x", screenPoint.x);
+            screenPointMap.putInt("y", screenPoint.y);
             Point mapPoint = mMapView.screenToLocation(screenPoint);
             WritableMap mapPointMap = Arguments.createMap();
             if (mapPoint != null) {
@@ -486,70 +491,64 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
                 mapPointMap.putDouble("longitude", latLongPoint.getX());
             }
 
-            /*adding info to map*/
+            /* adding info to map */
             WritableMap infoMap = Arguments.createMap();
             if (geoAtrribs != null) {
-                for (Map.Entry<String, Object> entry : geoAtrribs.entrySet()){
+                for (Map.Entry<String, Object> entry : geoAtrribs.entrySet()) {
                     infoMap.putString(entry.getKey(), gson.toJson(entry.getValue()));
                 }
             }
 
             WritableMap map = Arguments.createMap();
             map.putMap("screenPoint", screenPointMap);
-            map.putMap("mapPoint",mapPointMap);
+            map.putMap("mapPoint", mapPointMap);
             map.putMap("infoMap", infoMap);
-            
 
             return map;
         }
 
-        
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            
+
             android.graphics.Point screenPoint = new android.graphics.Point(((int) e.getX()), ((int) e.getY()));
             ArcGISMap map = mapView.getMap();
 
-            /*ListenableFuture<List<IdentifyGraphicsOverlayResult>> future = mMapView.identifyGraphicsOverlaysAsync(screenPoint,15, false);
-            future.addDoneListener(() -> {
-                try {
-                    if (!future.get().isEmpty()) {
-                        // We only care about the topmost result
-                        IdentifyGraphicsOverlayResult futureResult = future.get().get(0);
-                        List<Graphic> graphicResult = futureResult.getGraphics();
-                        // More null checking >.>
-                        if (!graphicResult.isEmpty()) {
-                            Graphic result = graphicResult.get(0);
-                            map.putString("graphicReferenceId", Objects.requireNonNull(result.getAttributes().get("referenceId")).toString());
-                            if (recenterIfGraphicTapped) {
-                                mapView.setViewpointCenterAsync(((Point) result.getGeometry()));
-                            }
-                        }
-                    }
-                } catch (InterruptedException | ExecutionException exception) {
-                    exception.printStackTrace();
-                } finally {
-                    emitEvent("onSingleTap",map);
-                }
-            });*/
-            //Toast.makeText(context, exception.getMessage(), Toast.LENGTH_LONG).show();
+            /*
+             * ListenableFuture<List<IdentifyGraphicsOverlayResult>> future =
+             * mMapView.identifyGraphicsOverlaysAsync(screenPoint,15, false);
+             * future.addDoneListener(() -> { try { if (!future.get().isEmpty()) { // We
+             * only care about the topmost result IdentifyGraphicsOverlayResult futureResult
+             * = future.get().get(0); List<Graphic> graphicResult =
+             * futureResult.getGraphics(); // More null checking >.> if
+             * (!graphicResult.isEmpty()) { Graphic result = graphicResult.get(0);
+             * map.putString("graphicReferenceId",
+             * Objects.requireNonNull(result.getAttributes().get("referenceId")).toString())
+             * ; if (recenterIfGraphicTapped) { mapView.setViewpointCenterAsync(((Point)
+             * result.getGeometry())); } } } } catch (InterruptedException |
+             * ExecutionException exception) { exception.printStackTrace(); } finally {
+             * emitEvent("onSingleTap",map); } });
+             */
+            // Toast.makeText(context, exception.getMessage(), Toast.LENGTH_LONG).show();
 
-            //ensure that a layer is present (currently only checks for a single layer)
-            //https://developers.arcgis.com/android/latest/guide/identify-features.htm
-            //identifies the layer of a click and then calls handle identifyresults in the case that a layer is clicked
+            // ensure that a layer is present (currently only checks for a single layer)
+            // https://developers.arcgis.com/android/latest/guide/identify-features.htm
+            // identifies the layer of a click and then calls handle identifyresults in the
+            // case that a layer is clicked
             if (featLayer != null) {
-                
+
                 final ListenableFuture<List<IdentifyLayerResult>> identifyLayerResultsFuture = mapView
-                .identifyLayersAsync(screenPoint, 12, false, 10);
+                        .identifyLayersAsync(screenPoint, 12, false, 10);
 
                 identifyLayerResultsFuture.addDoneListener(new Runnable() {
                     WritableMap returnMap = Arguments.createMap();
-                    @Override public void run() {
-                        try{
+
+                    @Override
+                    public void run() {
+                        try {
                             List<IdentifyLayerResult> identifyLayerResults = identifyLayerResultsFuture.get();
-                            Map<String,Object> returnInfo = handleIdentifyResults(identifyLayerResults);
+                            Map<String, Object> returnInfo = handleIdentifyResults(identifyLayerResults);
                             returnMap = createPointMap(e, returnInfo);
-                        } catch(Exception exception) {
+                        } catch (Exception exception) {
                             Toast.makeText(context, exception.getMessage() + "HERE", Toast.LENGTH_LONG).show();
                         } finally {
                             emitEvent("onSingleTap", returnMap);
@@ -564,23 +563,23 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
     /**
      * my function for getting point attributes
      */
-    private Map<String,Object> handleIdentifyResults(List<IdentifyLayerResult> identifyLayerResults) {
+    private Map<String, Object> handleIdentifyResults(List<IdentifyLayerResult> identifyLayerResults) {
         StringBuilder message = new StringBuilder();
         int totalCount = 0;
-        Map<String,Object> attribs = new HashMap<>();
+        Map<String, Object> attribs = new HashMap<>();
 
         for (IdentifyLayerResult identifyLayerResult : identifyLayerResults) {
-          List<GeoElement> geoElements = identifyLayerResult.getElements();
-          for (GeoElement geoElem : geoElements) {
-            attribs = geoElem.getAttributes();
-          }
-    
+            List<GeoElement> geoElements = identifyLayerResult.getElements();
+            for (GeoElement geoElem : geoElements) {
+                attribs = geoElem.getAttributes();
+            }
+
         }
-        //Toast.makeText(context, attribs.toString(), Toast.LENGTH_SHORT).show();
+        // Toast.makeText(context, attribs.toString(), Toast.LENGTH_SHORT).show();
 
         return attribs;
 
-      }
+    }
 
     // MARK: Lifecycle Event Listeners
     @Override
@@ -606,9 +605,8 @@ public class RNAGSMapView extends LinearLayout implements LifecycleEventListener
         Envelope envelope = polygon.getExtent();
         Double paddingWidth = envelope.getWidth() * 0.5;
         Double paddingHeight = envelope.getHeight() * 0.5;
-        return new Viewpoint(new Envelope(
-                envelope.getXMin() - paddingWidth, envelope.getYMax() + paddingHeight,
-                envelope.getXMax() + paddingWidth, envelope.getYMin() - paddingHeight,
-                SpatialReferences.getWgs84()), 0);
+        return new Viewpoint(new Envelope(envelope.getXMin() - paddingWidth, envelope.getYMax() + paddingHeight,
+                envelope.getXMax() + paddingWidth, envelope.getYMin() - paddingHeight, SpatialReferences.getWgs84()),
+                0);
     }
 }

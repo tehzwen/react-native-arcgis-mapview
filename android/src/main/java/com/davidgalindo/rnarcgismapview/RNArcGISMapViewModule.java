@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.uimanager.UIManagerModule;
+import com.facebook.react.bridge.Promise;
 
 public class RNArcGISMapViewModule extends ReactContextBaseJavaModule {
     public RNArcGISMapViewModule(ReactApplicationContext context) {
@@ -30,8 +31,7 @@ public class RNArcGISMapViewModule extends ReactContextBaseJavaModule {
             }
         });
     }
-
-
+    
     @ReactMethod
     public void setLicenseKey(String licenseKey) {
         ArcGISRuntimeEnvironment.setLicense(licenseKey);
