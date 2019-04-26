@@ -1,4 +1,4 @@
-#ArcGIS React Native Library
+<h1>ArcGIS React Native Library</h1>
 
 This App is a proof of concept for now showing that ArcGIS can be used in react native to draw maps, layers and interact with the maps and layers to display data relevant to the points on the layer.
 
@@ -7,9 +7,9 @@ The App utilizes react-native-arcgis-mapview written by davidgalindo on Github. 
 It took a lot of work to get the library to even run with the current version of React Native. Below are some of the steps that I took to get it work with my project. My version of the library can be found 
 here https://github.com/tehzwen/react-native-arcgis-mapview. It will be the latest update that is being used in the app. It currently does not support iOS as that has yet to be added.
 
-##Getting the library setup
+<h2>Getting the library setup</h2>
 
-###Android Instructions
+<h3>Android Instructions </h3>
 - Use npm or yarn to install davidgalindo's library ie. ```yarn add react-native-arcgis-mapview``` or ```npm install react-native-arcgis-mapview --save```.
 - Clone the repository https://github.com/tehzwen/react-native-arcgis-mapview and add it to your node modules folder after cloning it which will override some of the files from the existing library.
 - Follow davidgalindo's instructions on https://github.com/davidgalindo/react-native-arcgis-mapview under android including adding the extra fields to your build.gradle in ```android\```:
@@ -80,7 +80,7 @@ export default class MapScreen extends Component {
 }
 ```
 
-##Connecting Android Functions/Methods to React Native
+<h2>Connecting Android Functions/Methods to React Native</h2>
 Following the patterns found in davidgalindo's library I will give a brief example on how to create a method in android and then how to access said method in React Native. For the sake of this example we will use our ArcGISMapView library.
 
 Our function will do the following:
@@ -197,7 +197,7 @@ Now that this is done we can refer back to the first example I posted of the Map
 
 We have now added a button to our screen that will allow us to call the function we just wrote by using the reference to the mapview. We can now call void functions in native android from React Native. Next we will find out how we can retrieve values from methods in Android.
 
-##Getting Values from Android to React Native
+<h2>Getting Values from Android to React Native</h2>
 
 There are situations where we might be interested in getting return values from native android whether its the value of something we are interested in or some data that can only be retreived on the native side we can use callbacks and ReactMethods to transfer this data.
 
